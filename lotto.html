@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>로또 추첨</title>
+    <style>
+      #app {
+        background-color: beige;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+      .ballWrap {
+        border: 1px solid green;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .ballWrap i {
+        color: lightcoral;
+        font-weight: 800;
+        font-size: 0.8rem;
+        font-style: normal;
+      }
+      .ball {
+        display: inline-block;
+        border: 1px solid black;
+        border-radius: 20px;
+        width: 40px;
+        height: 40px;
+        line-height: 40px;
+        font-size: 20px;
+        font-weight: 900;
+        text-align: center;
+        margin: 3px;
+      }
+      .displaySelected {
+        border: 1px solid red;
+        min-height: 50px;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .displaySelected h2 {
+        border: 1px solid lightblue;
+        width: 100vw;
+        text-align: center;
+      }
+      .displayError {
+        border: 1px solid black;
+        height: 20px;
+        color: lightcoral;
+        font-weight: 800;
+        text-align: center;
+        display: flex;
+      }
+      #result {
+        border: 1px solid red;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      #result h2 {
+        border: 1px solid lightblue;
+        width: 100vw;
+        text-align: center;
+      }
+      #bonus {
+        border: 1px solid red;
+      }
+      #bonus h2 {
+        border: 1px solid lightblue;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <div class="displaySelected">
+        <h2>내가 고른 숫자</h2>
+        <div class="ballWrap">
+          <i>1st</i>
+          <div class="ball">1</div>
+        </div>
+      </div>
+      <input name="input" placeholder="숫자 6개를 쉼표로 구분해 입력하세요." />
+      <button id="inputBtn">추첨</button>
+      <div class="displayError"></div>
+      <div id="result">
+        <h2>당첨 숫자</h2>
+        <div class="ballWrap">
+          <i>1st</i>
+          <div class="ball">1</div>
+        </div>
+        <div class="ballWrap">
+          <i>1st</i>
+          <div class="ball">1</div>
+        </div>
+      </div>
+      <div id="bonus">
+        <h2>보너스 숫자</h2>
+        <div class="ballWrap">
+          <i>1st</i>
+          <div class="ball">1</div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      class CreateBall {
+        constructor(st, num, isMatch = false) {
+          this.st = st;
+          this.num = num;
+          this.isMatch = isMatch;
+        }
+
+        render() {
+          let ballColor; //숫자에 따라 달라지는 공 색깔
+          let stStr; //몇번째 공인지 (1st, 2nd ...)
+          if (this.num < 11) ballColor = "yellow";
+          else if (this.num < 21) ballColor = "rgb(76, 148, 236)";
+          else if (this.num < 31) ballColor = "red";
+          else if (this.num < 41) ballColor = "gray";
+          else ballColor = "green";
+
+          if (this.st === 1) stStr = "st";
+          else if (this.st === 2) stStr = "nd";
+          else if (this.st === 3) stStr = "rd";
+          else if (this.st === 0) stStr = "";
+          else stStr = "th";
+
+          return `
+        <div class="ballWrap">
+          <i ${this.isMatch ? `style="color:green"` : ""}>
+            ${this.st === 0 ? "bonus" : this.st}${stStr}
+          </i>
+          <div class="ball" style="background-color:${ballColor}">${
+            this.num
+          }</div>
+        </div>
+        `;
+        }
+      }
+
+      class App {
+        constructor() {
+          this.selectedBalls = new Set();
+          this.answerBalls = [];
+        }
+
+        render() {
+          const app = document.getElementById("app");
+          app.innerHTML += `
+      <div class="displaySelected"></div>
+      <input name="input" placeholder="숫자 6개를 쉼표로 구분해 입력하세요." />
+      <button id="inputBtn">추첨</button>
+      <div class="displayError"></div>
+      <div id="result"></div>
+      <div id="bonus"></div>
+      `;
+          this.selectedBallDiv = document.querySelector(".displaySelected");
+          this.displayErrorDiv = document.querySelector(".displayError");
+
+          this.input = document.querySelector("input");
+          this.inputBtn = document.querySelector("#inputBtn");
+
+          this.resultAnsDiv = document.querySelector("#result");
+          this.bonusAnsDiv = document.querySelector("#bonus");
+        }
+
+        showError(err) {
+          console.log("err", err);
+          this.displayErrorDiv.innerHTML = err;
+        }
+
+        addSelectedBall(num) {
+          console.log(this.selectedBalls.size);
+          if (this.selectedBalls.has(num)) {
+            this.showError("이미 선택한 숫자입니다");
+            return "err";
+          } else if (num > 45 || num < 1) {
+            this.showError("1~45 사이의 숫자를 선택해주세요");
+            return "err";
+          } else if (this.selectedBalls.size > 6) {
+            this.showError("숫자는 7개까지 선택할 수 있어요!");
+            return "err";
+          } else {
+            this.showError("");
+          }
+          this.selectedBalls.add(num);
+
+          const ball = new CreateBall(this.selectedBalls.size, num);
+          this.selectedBallDiv.innerHTML += ball.render();
+          //console.log(this.selectedBalls);
+        }
+
+        parseStringToNum(str) {
+          let nums_t = str.split(",");
+
+          nums_t = nums_t.filter((n) => !isNaN(n) && n !== "");
+          console.log("nums_t", nums_t);
+
+          nums_t.forEach((n, i) => {
+            n = n.trim();
+            nums_t[i] = Number(n);
+          });
+          console.log("nums_t", nums_t);
+
+          this.selectedBalls.clear();
+          this.selectedBallDiv.innerHTML = "";
+          for (let i = 0; i < nums_t.length; i++) {
+            if (this.addSelectedBall(nums_t[i]) === "err") break;
+          }
+        }
+
+        pickAnswer() {
+          // Fisher-Yates 셔플
+          const numbers_t = [];
+          for (let i = 1; i <= 45; i++) {
+            numbers_t.push(i);
+          }
+
+          for (let i = numbers_t.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [numbers_t[i], numbers_t[j]] = [numbers_t[j], numbers_t[i]];
+          }
+
+          this.answerBalls = numbers_t.slice(0, 7);
+        }
+
+        showAnswer() {
+          this.resultAnsDiv.innerHTML = "<h2>당첨 숫자</h2>";
+          this.bonusAnsDiv.innerHTML = "<h2>보너스 숫자</h2>";
+
+          console.log(this.selectedBalls);
+          for (let i = 0; i < 6; i++) {
+            const b = this.answerBalls[i];
+            const isMatch = this.selectedBalls.has(b);
+            if (isMatch) console.log("match", i + 1, b);
+            const ball = new CreateBall(i + 1, b, isMatch);
+            this.resultAnsDiv.innerHTML += ball.render();
+          }
+
+          const b = this.answerBalls[6];
+          const isMatch = this.selectedBalls.has(b);
+          const ball = new CreateBall(0, b, isMatch);
+          this.bonusAnsDiv.innerHTML += ball.render();
+        }
+
+        finalCheck() {
+          if (this.displayErrorDiv.innerHTML !== "") return false;
+          if (this.selectedBalls.size !== 7) {
+            this.showError("7개의 숫자를 선택해주세요");
+            return false;
+          }
+          return true;
+        }
+
+        setupEventListeners() {
+          this.input.addEventListener("input", (e) => {
+            this.parseStringToNum(this.input.value);
+          });
+          this.input.addEventListener("keyup", (e) => {
+            if (e.key !== "Enter") return;
+            if (!this.finalCheck()) return;
+            this.pickAnswer();
+            this.showAnswer();
+          });
+          this.inputBtn.addEventListener("click", (e) => {
+            if (!this.finalCheck()) return;
+            this.pickAnswer();
+            this.showAnswer();
+          });
+        }
+
+        init() {
+          this.render();
+          this.setupEventListeners();
+        }
+      }
+
+      const app = new App();
+      app.init();
+
+      // const $form = document.querySelector("#form");
+      // const $input = document.querySelector("#form input");
+      // const $result = document.querySelector("#result");
+      // const $bonus = document.querySelector("#bonus");
+      // $form.addEventListener("submit", (e) => {
+      //   e.preventDefault();
+      // });
+
+      // $form.querySelector("button").addEventListener("click", (e) => {});
+    </script>
+  </body>
+</html>
